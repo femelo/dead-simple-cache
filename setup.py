@@ -44,7 +44,7 @@ def get_version():
 
 
 setup(
-    name='simple-cache',
+    name='dead-simple-cache',
     version=get_version(),
     description='A dead simple caching lib',
     url='https://github.com/femelo/dead-simple-cache',
