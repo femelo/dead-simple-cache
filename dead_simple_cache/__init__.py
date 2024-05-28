@@ -67,7 +67,7 @@ class SimpleCache:
         """Replace data."""
         key_ = str(key).lower()
         with self._lock:
-            self._db[key_] = [data]
+            self._db[key_] = data if isinstance(data, list) else [data]
 
     def delete(self, key: Any) -> None:
         key_ = str(key).lower()
@@ -85,7 +85,10 @@ class SimpleCache:
                 data_ = self._db[key_]
             else:
                 insort(self.keys, key_)
-            data_.append(data)
+            if isinstance(data, list):
+                data_.extend(data)
+            else:
+                data_.append(data)
             self._db[key_] = data_
 
     def get(self, query: Any, fuzzy: bool = False) -> Optional[dict]:
