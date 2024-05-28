@@ -21,12 +21,12 @@ class SimpleCache:
             logger.error("error setting cache: 'path' must be set")
             raise ValueError("'path' must be set")
         try:
-            base_dir = os.path.dirname(file_path)
+            full_path = os.path.abspath(os.path.expanduser(file_path))
+            base_dir = os.path.dirname(full_path)
             os.makedirs(base_dir, exist_ok=True)
         except Exception as e:
             logger.error(f"error setting cache: {e}")
             raise ValueError(e)
-        full_path = os.path.abspath(os.path.expanduser(file_path))
         if full_path not in FILE_LOCKS:
             FILE_LOCKS[full_path] = Lock()
         self._lock = FILE_LOCKS[full_path]
@@ -45,23 +45,23 @@ class SimpleCache:
         """Fuzzy matching helper method."""
         return DamerauLevenshtein.normalized_similarity(key, query) >= self._threshold
 
-    def _get(self, key: str) -> list:
+    def _get(self, key: str) -> dict:
         """Get data."""
         with self._lock:
             data = self._db.get(key, default=[])
-        return data
+        return {key: data} if data else {}
 
-    def _fuzzy_get(self, query: str) -> list:
+    def _fuzzy_get(self, query: str) -> dict:
         """Get data with fuzzy matching."""
         with self._lock:
-            filtered_keys = list(
+            keys = list(
                     filter(
                         lambda key: self._match(key, query),
                         self.keys
                     )
                 )
-            data = sum([self._db[key] for key in filtered_keys], [])
-        return data
+            data = [self._db[key] for key in keys]
+        return dict(zip(keys, data)) if keys else {}
 
     def replace(self, key: Any, data: Any) -> None:
         """Replace data."""
@@ -88,7 +88,7 @@ class SimpleCache:
             data_.append(data)
             self._db[key_] = data_
 
-    def get(self, query: Any, fuzzy: bool = False) -> Optional[Any]:
+    def get(self, query: Any, fuzzy: bool = False) -> Optional[dict]:
         """Get data."""
         if fuzzy:
             return self._fuzzy_get(str(query))
