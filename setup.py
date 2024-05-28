@@ -21,7 +21,7 @@ with open("README.md", "r") as f:
 def get_version():
     """ Find the version of the package"""
     version = None
-    version_file = os.path.join(BASEDIR, 'simple_cache', 'version.py')
+    version_file = os.path.join(BASEDIR, 'dead_simple_cache', 'version.py')
     major, minor, build, alpha = (None, None, None, None)
     with open(version_file) as f:
         for line in f:
@@ -46,12 +46,12 @@ def get_version():
 setup(
     name='simple-cache',
     version=get_version(),
-    description='A question solver plugin for ovos',
-    url='https://github.com/femelo/simple-cache',
+    description='A dead simple caching lib',
+    url='https://github.com/femelo/dead-simple-cache',
     author='Flávio De Melo',
     author_email='flavio.eler@gmail.com',
     license='Apache 2.0',
-    packages=['simple_cache'],
+    packages=['dead_simple_cache'],
     zip_safe=True,
     keywords='caching',
     install_requires=required("requirements.txt"),

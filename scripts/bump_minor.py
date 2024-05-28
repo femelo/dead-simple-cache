@@ -2,7 +2,7 @@ import fileinput
 from os.path import join, dirname
 
 
-version_file = join(dirname(dirname(__file__)), "simple_cache", "version.py")
+version_file = join(dirname(dirname(__file__)), "dead_simple_cache", "version.py")
 version_var_name = "VERSION_MINOR"
 build_var_name = "VERSION_BUILD"
 alpha_var_name = "VERSION_ALPHA"
