@@ -1,4 +1,4 @@
-# Metadata cache
+# Dead Simple Cache
 
 A dead simple thread-safe caching lib powered by [shelve](https://docs.python.org/3/library/shelve.html).
 
