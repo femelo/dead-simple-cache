@@ -54,11 +54,11 @@ class SimpleCache:
         """Get data with fuzzy matching."""
         with self._lock:
             keys = list(
-                    filter(
-                        lambda key: self._match(key, query),
-                        sorted(self._db.keys())
-                    )
+                filter(
+                    lambda key: self._match(key, query),
+                    sorted(self._db.keys())
                 )
+            )
             data = [self._db[key] for key in keys]
         return dict(zip(keys, data)) if keys else {}
 
