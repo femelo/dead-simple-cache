@@ -1,7 +1,6 @@
 import os
 from threading import Lock
 import shelve
-from bisect import insort
 import logging
 from typing import Any, Optional
 from rapidfuzz.distance import DamerauLevenshtein
@@ -20,6 +19,7 @@ class SimpleCache:
         if not file_path:
             logger.error("error setting cache: 'path' must be set")
             raise ValueError("'path' must be set")
+
         try:
             full_path = os.path.abspath(os.path.expanduser(file_path))
             base_dir = os.path.dirname(full_path)
@@ -27,18 +27,17 @@ class SimpleCache:
         except Exception as e:
             logger.error(f"error setting cache: {e}")
             raise ValueError(e)
+
         if full_path not in FILE_LOCKS:
             FILE_LOCKS[full_path] = Lock()
         self._lock = FILE_LOCKS[full_path]
+
         # Open database for reading and writing
         self._db = shelve.open(file_path, flag='c', protocol=None, writeback=False)
         self._threshold = fuzzy_threshold
-        with self._lock:
-            self.keys = list(sorted(self._db.keys()))
 
     def __del__(self) -> None:
         with self._lock:
-            self._db.sync()
             self._db.close()
 
     def _match(self, key: str, query: str) -> float:
@@ -57,7 +56,7 @@ class SimpleCache:
             keys = list(
                     filter(
                         lambda key: self._match(key, query),
-                        self.keys
+                        sorted(self._db.keys())
                     )
                 )
             data = [self._db[key] for key in keys]
@@ -72,19 +71,16 @@ class SimpleCache:
     def delete(self, key: Any) -> None:
         key_ = str(key).lower()
         with self._lock:
-            if key_ in self.keys:
+            if key_ in self._db:
                 del self._db[key_]
-                self.keys.remove(key_)
 
     def add(self, key: Any, data: Any) -> None:
         """Add data."""
         data_ = []
         key_ = str(key).lower()
         with self._lock:
-            if key_ in self.keys:
+            if key_ in self._db:
                 data_ = self._db[key_]
-            else:
-                insort(self.keys, key_)
             if isinstance(data, list):
                 data_.extend(data)
             else:
