@@ -15,7 +15,7 @@ FILE_LOCKS = {}
 class SimpleCache:
     """Simple cache."""
 
-    def __init__(self, file_path: str, fuzzy_threshold: float = 0.75):
+    def __init__(self, file_path: str, open: bool = True, fuzzy_threshold: float = 0.75):
         if not file_path:
             logger.error("error setting cache: 'path' must be set")
             raise ValueError("'path' must be set")
@@ -30,15 +30,20 @@ class SimpleCache:
 
         if full_path not in FILE_LOCKS:
             FILE_LOCKS[full_path] = Lock()
-        self._lock = FILE_LOCKS[full_path]
+        self._lock : Lock = FILE_LOCKS[full_path]
 
+        self._path : str = full_path
+        self._db : Optional[shelve.DbfilenameShelf] = None
+        self._is_open : bool = False
+        self._threshold : float = fuzzy_threshold
         # Open database for reading and writing
-        self._db = shelve.open(file_path, flag='c', protocol=None, writeback=False)
-        self._threshold = fuzzy_threshold
+        if open:
+            self.open()
 
     def __del__(self) -> None:
-        with self._lock:
-            self._db.close()
+        if self._is_open:
+            with self._lock:
+                self.close()
 
     def _match(self, key: str, query: str) -> float:
         """Fuzzy matching helper method."""
@@ -46,12 +51,18 @@ class SimpleCache:
 
     def _get(self, key: str) -> dict:
         """Get data."""
+        if not self._is_open:
+            logger.error("cache is not open.")
+            raise IOError("cache is not open.")
         with self._lock:
             data = self._db.get(key, default=[])
         return {key: data} if data else {}
 
     def _fuzzy_get(self, query: str) -> dict:
         """Get data with fuzzy matching."""
+        if not self._is_open:
+            logger.error("cache is not open.")
+            raise IOError("cache is not open.")
         with self._lock:
             keys = list(
                 filter(
@@ -62,13 +73,37 @@ class SimpleCache:
             data = [self._db[key] for key in keys]
         return dict(zip(keys, data)) if keys else {}
 
+    def open(self):
+        """Open cache."""
+        if self._is_open:
+            logger.warn("cache is already open.")
+            return
+        with self._lock:
+            self._db = shelve.open(self._path, flag='c', protocol=None, writeback=False)
+        self._is_open = True
+
+    def close(self):
+        """Close cache."""
+        if not self._is_open:
+            logger.warn("cache is already closed.")
+            return
+        with self._lock:
+            self._db.close()
+        self._is_open = False
+
     def replace(self, key: Any, data: Any) -> None:
         """Replace data."""
+        if not self._is_open:
+            logger.error("cache is not open.")
+            raise IOError("cache is not open.")
         key_ = str(key).lower()
         with self._lock:
             self._db[key_] = data if isinstance(data, list) else [data]
 
     def delete(self, key: Any) -> None:
+        if not self._is_open:
+            logger.error("cache is not open.")
+            raise IOError("cache is not open.")
         key_ = str(key).lower()
         with self._lock:
             if key_ in self._db:
@@ -76,6 +111,9 @@ class SimpleCache:
 
     def add(self, key: Any, data: Any) -> None:
         """Add data."""
+        if not self._is_open:
+            logger.error("cache is not open.")
+            raise IOError("cache is not open.")
         data_ = []
         key_ = str(key).lower()
         with self._lock:
